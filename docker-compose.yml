@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: imopin_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: imopin_user
+      POSTGRES_PASSWORD: imopin_password
+      POSTGRES_DB: imopin
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
