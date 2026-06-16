@@ -1,0 +1,216 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Finalidade {
+  ALUGAR
+  VENDER
+  ALUGAR_E_VENDER
+}
+
+enum TipoCategoria {
+  RESIDENCIAL
+  COMERCIAL
+}
+
+enum TipoImovel {
+  APARTAMENTO
+  CASA
+  CASA_CONDOMINIO
+  CHACARA
+  COBERTURA
+  FLAT
+  KITNET
+  LOTE_TERRENO
+  SOBRADO
+  EDIFICIO
+  FAZENDA_SITIO
+  CONSULTORIO
+  GALPAO
+  IMOVEL_COMERCIAL
+  LOTE_COMERCIAL
+  PONTO_COMERCIAL
+}
+
+enum StatusImovel {
+  ATIVO
+  PAUSADO
+  ALUGADO
+  VENDIDO
+  EXCLUIDO
+}
+
+enum MotivoDenuncia {
+  INFO_FALSA
+  FOTO_INADEQUADA
+  CONTATO_INVALIDO
+  OUTRO
+}
+
+enum StatusDenuncia {
+  PENDENTE
+  RESOLVIDA
+  IGNORADA
+}
+
+model User {
+  id               String   @id @default(cuid())
+  name             String
+  email            String   @unique
+  phone            String?
+  passwordHash     String
+  emailVerified    DateTime?
+  emailToken       String?  @unique
+  emailTokenExpiry DateTime?
+  resetToken       String?  @unique
+  resetTokenExpiry DateTime?
+  role             Role     @default(USER)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  imoveis          Imovel[]
+  favoritos        Favorito[]
+  denuncias        Denuncia[]
+  anunciosSemana   AnunciosSemana[]
+}
+
+model Imovel {
+  id                   String        @id @default(cuid())
+  userId               String
+  titulo               String
+  descricao            String
+  finalidade           Finalidade
+  tipoCategoria        TipoCategoria
+  tipoImovel           TipoImovel
+  status               StatusImovel  @default(ATIVO)
+  cep                  String
+  rua                  String
+  numero               String
+  complemento          String?
+  bairro               String
+  cidade               String        @default("Pinheiro")
+  estado               String        @default("MA")
+  lat                  Float?
+  lng                  Float?
+  areaM2               Float?
+  quartos              Int           @default(0)
+  banheiros            Int           @default(0)
+  vagas                Int           @default(0)
+  mobiliado            Boolean       @default(false)
+  aceitaPets           Boolean       @default(false)
+  piscina              Boolean       @default(false)
+  churrasqueira        Boolean       @default(false)
+  portaria             Boolean       @default(false)
+  condominioFechado    Boolean       @default(false)
+  precoAluguel         Float?
+  precoVenda           Float?
+  condominio           Float?
+  iptu                 Float?
+  whatsapp             String
+  visualizacoes        Int           @default(0)
+  ultimaInteracao      DateTime      @default(now())
+  alertaRenovacaoEnviado Boolean     @default(false)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  publicadoEm          DateTime      @default(now())
+
+  user                 User              @relation(fields: [userId], references: [id])
+  fotos                Foto[]
+  favoritos            Favorito[]
+  faculdadesProximas   FaculdadeImovel[]
+  denuncias            Denuncia[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([bairro])
+  @@index([finalidade])
+  @@index([tipoImovel])
+  @@index([precoAluguel])
+  @@index([precoVenda])
+}
+
+model Foto {
+  id        String   @id @default(cuid())
+  imovelId  String
+  url       String
+  r2Key     String
+  ordem     Int
+  createdAt DateTime @default(now())
+
+  imovel    Imovel @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
+  @@index([imovelId])
+}
+
+model Favorito {
+  id        String   @id @default(cuid())
+  userId    String
+  imovelId  String
+  createdAt DateTime @default(now())
+
+  user      User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  imovel    Imovel @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, imovelId])
+  @@index([userId])
+  @@index([imovelId])
+}
+
+model Faculdade {
+  id        String            @id @default(cuid())
+  nome      String   @unique
+  lat       Float
+  lng       Float
+  ativa     Boolean           @default(true)
+
+  imoveis   FaculdadeImovel[]
+}
+
+model FaculdadeImovel {
+  imovelId     String
+  faculdadeId  String
+  distanciaKm  Float
+
+  imovel       Imovel    @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+  faculdade    Faculdade @relation(fields: [faculdadeId], references: [id], onDelete: Cascade)
+
+  @@id([imovelId, faculdadeId])
+  @@index([faculdadeId])
+}
+
+model Denuncia {
+  id        String         @id @default(cuid())
+  imovelId  String
+  userId    String?
+  motivo    MotivoDenuncia
+  descricao String?
+  status    StatusDenuncia @default(PENDENTE)
+  createdAt DateTime       @default(now())
+
+  imovel    Imovel @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+  user      User?  @relation(fields: [userId], references: [id])
+
+  @@index([imovelId])
+  @@index([status])
+}
+
+model AnunciosSemana {
+  id           String   @id @default(cuid())
+  userId       String
+  semanaInicio DateTime
+  quantidade   Int      @default(0)
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, semanaInicio])
+  @@index([userId])
+}
